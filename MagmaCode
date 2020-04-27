@@ -39,7 +39,7 @@ dMUL := function(a,P)
    ahat := [ a[i] + t[i] - 1 : i in [1..d]];    // Derived odd scalars
    b := [ Reverse(Intseq(ahat[i],2) cat [0 : j in [Truncate(Log(2,ahat[i]))+1..ell] ]) : i in [1..d] ]; // Bits of ahat with padded 0s
 
-   // Algorithm begins: bitstring construction
+   // Encoding begins: bitstring construction
    r := [];
    for k := ell to 1 by -1 do
       for i := 1 to d do
@@ -47,7 +47,7 @@ dMUL := function(a,P)
       end for;
       L := [[], []];
       for i := 1 to d do
-         Append(~L[1+BitwiseXor( b[sigma[i]][k] , b[sigma[i]][k+1] ) ] ,sigma[i]); // Magma indices start at 1
+         Append(~L[1 + BitwiseXor( b[sigma[i]][k] , b[sigma[i]][k+1] ) ] ,sigma[i]); // Magma indices start at 1
       end for;
       sigma := Reverse(L[2]) cat L[1];
    end for;
