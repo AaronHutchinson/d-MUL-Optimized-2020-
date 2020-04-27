@@ -1,2 +1,5 @@
 # d-MUL-Optimized-2020-
-An optimization of the d-MUL algorithm, which is computes a desired linear combination of group elements without any matrix arithmetic.
+This is an implementation of the optimized version of the d-MUL algorithm presented in the paper "A New Encoding Algorithm for a Multidimensional Version of the Montgomery Ladder" by Aaron Hutchinson and Koray Karabina. The algorithm computes a desired linear combination a_1 P_1 + ... + a_d P_d of group elements P_i and integer scalars a_i. 
+
+
+This version is more efficient than the original presented in the papaer "Constructing Multidimensional Differential Addition Chains and Their Applications" in that it bypasses all matrix arithmetic by using an encoding derived from running a window of width 2 over the bits of the input scalars. The total number of operations used during the point arithmetic stage is L*(1D + dA), where L is the bitlength of the scalars a_i, D denotes a point doubling, and A denotes a point addition. A small amount of preprocessing is required to derive the encoding, which involves only XOR operations and permutations of binary lists of length d.
