@@ -1,0 +1,96 @@
+////////////////////////////////////
+//      Parameters and Setup      //
+////////////////////////////////////
+
+d := 4;
+Fp := GF(NextPrime(1000));
+E := EllipticCurve([Fp ! 1, Fp ! 1]);
+Generator := Points(E,1)[1];
+CurvePoints := [ Random([1..#Fp]) * Generator : i in [1..d] ];
+
+
+/////////////////////////////////////
+//             d-MUL               //
+/////////////////////////////////////
+
+dMUL := function(a,P)
+
+   // Sanitize inputs by making all coefficients positive (Algorithm Sanitize)
+   for i in [1..d] do
+      if a[i] lt 0 then
+         a[i] := -a[i];
+         P[i] := -P[i];
+      end if;
+   end for;
+
+   // Choose appropriate sigma (Algorithm ChooseSeq)
+   evens := { i : i in [1..d] | a[i] mod 2 eq 0 };
+   if #evens ne 0 and #evens ne d then
+      sigma1 := Random(Permutations(evens));
+      sigma2 := Random(Permutations({1..d} diff evens));
+      sigma := sigma2 cat sigma1;
+   else
+      sigma := Random(Permutations({1..d}));
+   end if;
+
+   // Define variables
+   ell := Max([Ceiling(Log(2,a[i])) : i in [1..d]]);   // Largest bitlength of scalars
+   t := [ a[i] mod 2 : i in [1..d] ];    // Parity vector
+   ahat := [ a[i] + t[i] - 1 : i in [1..d]];    // Derived odd scalars
+   b := [ Reverse(Intseq(ahat[i],2) cat [0 : j in [Truncate(Log(2,ahat[i]))+1..ell] ]) : i in [1..d] ]; // Bits of ahat with padded 0s
+
+   // Algorithm begins: bitstring construction
+   r := [];
+   for k := ell to 1 by -1 do
+      for i := 1 to d do
+         r[(k-1)*d+i] := BitwiseXor( b[sigma[i]][k] , b[sigma[i]][k+1] );
+      end for;
+      L := [[], []];
+      for i := 1 to d do
+         Append(~L[1+BitwiseXor( b[sigma[i]][k] , b[sigma[i]][k+1] ) ] ,sigma[i]); // Magma indices start at 1
+      end for;
+      sigma := Reverse(L[2]) cat L[1];
+   end for;
+
+   Q := [ Identity(Curve(P[1])) : i in [1..d+1] ];  // Stores current iteration points
+   R := [ Identity(Curve(P[1])) : i in [1..d+1] ];  // Stores next iteration points
+
+   // Initialization of points
+   for i := 1 to d do
+      Q[i+1] := Q[i] + P[sigma[i]];
+   end for;
+
+   // Main loop
+   for k := 1 to ell do
+      h := #[i : i in r[(k-1)*d+1..k*d] | i eq 1] + 1; // Compute Hamming weight + 1
+      x := h;
+      y := h;
+      R[1] := 2*Q[h];
+      for i := 1 to d do
+         x := x - r[(k-1)*d+i];
+         y := y + 1 - r[(k-1)*d+i];
+         R[i+1] := Q[x] + Q[y];
+      end for;
+      Q := R;
+   end for;
+
+   h := #[ i : i in [1..d] | a[i] mod 2 eq 1] + 1; // Hamming weight of output row
+   return Q[h];
+end function;
+
+
+////////////////////////////////////
+//             TESTING            //
+////////////////////////////////////
+
+for i in [1..1000] do
+   a := [ Random([-2^128+1..2^128-1]) : i in [1..d]  ];
+
+   // To test accuracy of d-MUL, compute actual value of linear combination
+   actual := Identity(E);
+   for i in [1..d] do
+      actual := actual + a[i]*CurvePoints[i];
+   end for;
+
+   assert actual eq dMUL(a,CurvePoints);
+end for;
